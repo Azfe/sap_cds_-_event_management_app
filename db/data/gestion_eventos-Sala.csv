@@ -1,0 +1,3 @@
+codigo,nombre,edificio,planta,aforo,activa
+SALA-A1,Sala A1,Edificio Central,1,50,true
+SALA-B2,Auditorio,Edificio Central,2,200,true

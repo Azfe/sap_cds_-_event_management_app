@@ -1,0 +1,4 @@
+codigo,nombre,descripcion,activo
+CONF,Conferencia,Charla o ponencia abierta al público,true
+TALLER,Taller,Sesión práctica con aforo reducido,true
+WEBINAR,Webinar,Evento online en directo,true
