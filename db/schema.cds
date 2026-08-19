@@ -77,7 +77,7 @@ entity Inscripcion : cuid, managed {
         Pendiente;
         Confirmada;
         Cancelada;
-        Asistio;
+        Asistió;
         NoPresentado;
     } default 'Pendiente';
     observaciones : String(500);
