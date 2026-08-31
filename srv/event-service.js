@@ -3,6 +3,7 @@ const cds = require('@sap/cds');
 module.exports = class EventManagementService extends cds.ApplicationService {
   init() {
     const { Eventos, Inscripciones } = this.entities;
+    const { Secuencia } = cds.entities('com.gestion_eventos');
 
     /* Validación de inscripciones */
 
@@ -27,7 +28,7 @@ module.exports = class EventManagementService extends cds.ApplicationService {
         return req.reject(409, `Aforo máximo (${evento.aforoMaximo}) alcanzado para este evento`);
       }
 
-      req.data.codigo = await generarCodigoInscripcion(Inscripciones);
+      req.data.codigo = await generarCodigoInscripcion(cds.tx(req), Secuencia, new Date().getFullYear());
     });
 
     return super.init();
@@ -36,17 +37,29 @@ module.exports = class EventManagementService extends cds.ApplicationService {
 
 /* Generación de código de inscripción */
 
-async function generarCodigoInscripcion(Inscripciones) {
-  const anio = new Date().getFullYear();
+async function generarCodigoInscripcion(tx, Secuencia, anio) {
   const prefijo = `INS-${anio}-`;
 
-  const ultima = await SELECT.one.from(Inscripciones)
-    .columns('codigo')
-    .where({ codigo: { like: `${prefijo}%` } })
-    .orderBy('codigo desc');
+  // Intento 1: incrementar el contador si ya existe fila para este año
+  const filasActualizadas = await tx.run(
+    UPDATE(Secuencia)
+      .set('ultimoValor = ultimoValor + 1')
+      .where({ entidad: 'INSCRIPCION', anio })
+  );
 
-  let siguiente = 1;
-  if (ultima?.codigo) siguiente = parseInt(ultima.codigo.split('-')[2], 10) + 1;
+  let siguiente;
+  if (filasActualizadas === 0) {
+    // No existía fila para este año todavía: la creamos arrancando en 1
+    await tx.run(
+      INSERT.into(Secuencia).entries({ entidad: 'INSCRIPCION', anio, ultimoValor: 1 })
+    );
+    siguiente = 1;
+  } else {
+    const fila = await tx.run(
+      SELECT.one.from(Secuencia).where({ entidad: 'INSCRIPCION', anio })
+    );
+    siguiente = fila.ultimoValor;
+  }
 
   return prefijo + String(siguiente).padStart(4, '0');
 }
