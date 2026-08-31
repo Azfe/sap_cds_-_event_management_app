@@ -4,6 +4,8 @@ module.exports = class EventManagementService extends cds.ApplicationService {
   init() {
     const { Eventos, Inscripciones } = this.entities;
 
+    /* Validación de inscripciones */
+
     this.before('CREATE', 'Inscripciones', async (req) => {
       const eventoID    = req.data.evento_ID;
       const asistenteID = req.data.asistente_ID;
@@ -31,6 +33,8 @@ module.exports = class EventManagementService extends cds.ApplicationService {
     return super.init();
   }
 };
+
+/* Generación de código de inscripción */
 
 async function generarCodigoInscripcion(Inscripciones) {
   const anio = new Date().getFullYear();
