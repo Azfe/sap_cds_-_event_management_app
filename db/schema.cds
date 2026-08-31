@@ -70,6 +70,13 @@ entity Sesion : cuid, managed {
     sala            : Association to one Sala   not null;
 }
 
+/* Contador atómico para números de negocio, con reinicio por año */
+entity Secuencia {
+    key entidad     : String(20);
+    key anio        : Integer;
+    ultimoValor     : Integer not null default 0;
+}
+
 @assert.unique.emailUnico: [email] // un asistente no puede inscribirse dos veces al mismo evento
 entity Asistente : cuid, managed {
     nombre        : String(80)  not null;
