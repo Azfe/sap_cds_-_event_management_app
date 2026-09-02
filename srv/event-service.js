@@ -31,6 +31,25 @@ module.exports = class EventManagementService extends cds.ApplicationService {
       req.data.codigo = await generarCodigoInscripcion(cds.tx(req), Secuencia, new Date().getFullYear());
     });
 
+    /* Validación de coherencia de fechas de evento */
+
+    this.before(['CREATE', 'UPDATE'], 'Eventos', async (req) => {
+      let {fechaInicio, fechaFin} = req.data;
+
+      if (req.event === 'UPDATE' && (fechaInicio === undefined || fechaFin === undefined)) {
+        const eventoID = req.data.ID ?? req.params[0]?.ID;
+        const actual = await SELECT.one.from(Eventos)
+          .columns('fechaInicio', 'fechaFin')
+          .where({ ID: eventoID });
+        fechaInicio = fechaInicio ?? actual?.fechaInicio;
+        fechaFin    = fechaFin    ?? actual?.fechaFin;
+      }
+
+      if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
+        return req.reject(400, `La fecha de inicio (${fechaInicio}) no puede ser posterior a la fecha de fin (${fechaFin})`);
+      }
+    });
+
     return super.init();
   }
 };
