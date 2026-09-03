@@ -15,7 +15,7 @@ async function generarCodigoInscripcion(tx, Secuencia, anio) {
 
   let siguiente;
   if (filasActualizadas === 0) {
-    // No existía fila para este año todavía: la creamos arrancando en 1
+    // No existía fila para este año todavía: se crea arrancando en 1
     await tx.run(
       INSERT.into(Secuencia).entries({ entidad: 'INSCRIPCION', anio, ultimoValor: 1 })
     );
