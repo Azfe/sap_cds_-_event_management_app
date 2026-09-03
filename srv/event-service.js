@@ -34,8 +34,14 @@ module.exports = class EventManagementService extends cds.ApplicationService {
     /* Validación de coherencia de fechas de evento */
 
     this.before(['CREATE', 'UPDATE'], 'Eventos', async (req) => {
-      let { fechaInicio, fechaFin } = req.data;
 
+      // Valor por defecto dinámico
+      if (req.event === 'CREATE' && !req.data.fechaFin && req.data.fechaInicio) {
+        req.data.fechaFin = req.data.fechaInicio;
+      }
+
+      let { fechaInicio, fechaFin } = req.data;
+      // Validación de coherencia
       if (req.event === 'UPDATE' && (fechaInicio === undefined || fechaFin === undefined)) {
         const eventoID = req.data.ID ?? req.params[0]?.ID;
         const actual = await SELECT.one.from(Eventos)
