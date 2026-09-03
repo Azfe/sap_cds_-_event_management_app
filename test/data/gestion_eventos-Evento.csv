@@ -1,0 +1,3 @@
+ID,titulo,descripcion,fechaInicio,fechaFin,aforoMaximo,estado,precio,tipoEvento_codigo
+e1000000-0000-0000-0000-000000000001,Conferencia CDS 2026,Evento de ejemplo con sesiones e inscripciones,2026-09-10,2026-09-10,50,Abierto,25.00,CONF
+e1000000-0000-0000-0000-000000000002,Taller SQLite,Evento de ejemplo sin sesiones ni inscripciones (para probar publicar),2026-10-01,2026-10-01,20,Planificado,0.00,TALLER

@@ -1,0 +1,4 @@
+ID,nombre,apellidos,email,telefono,empresa
+a1000000-0000-0000-0000-000000000001,Ana,García,ana@test.com,600111111,Acme
+a1000000-0000-0000-0000-000000000002,Carlos,Martínez,carlos@test.com,600222222,Beta Corp
+a1000000-0000-0000-0000-000000000003,Laura,Ruiz,laura@test.com,600333333,Acme
