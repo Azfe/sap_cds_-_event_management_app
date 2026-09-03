@@ -1,9 +1,9 @@
 const cds = require('@sap/cds');
-const { generarCodigoInscripcion, contarInscritosActivos } = require('./helpers/event-helpers');
+const { generarCodigoInscripcion, contarInscritosActivos, cambiarEstadoEvento } = require('./helpers/event-helpers');
 
 module.exports = class EventManagementService extends cds.ApplicationService {
   init() {
-    const { Eventos, Inscripciones, Sesiones } = this.entities;
+    const { Eventos, Inscripciones, Sesiones, Asistentes } = this.entities;
     const { Secuencia } = cds.entities('com.gestion_eventos');
 
     /* Validación de inscripciones */
@@ -132,6 +132,61 @@ module.exports = class EventManagementService extends cds.ApplicationService {
       const { ID } = req.params[0];
       const sesiones = await SELECT.from(Sesiones).columns('ID').where({ evento_ID: ID });
       return sesiones.length;
+    });
+
+    /* Cambio de estado de un evento - Actions */
+
+    this.on('publicar', 'Eventos', async (req) => {
+      const { ID } = req.params[0];
+      return cambiarEstadoEvento(Eventos, req, ID, ['Planificado'], 'Abierto');
+    });
+
+    this.on('cerrar', 'Eventos', async (req) => {
+      const { ID } = req.params[0];
+      return cambiarEstadoEvento(Eventos, req, ID, ['Abierto'], 'Cerrado');
+    });
+
+    this.on('cancelar', 'Eventos', async (req) => {
+      const { ID } = req.params[0];
+      const evento = await cambiarEstadoEvento(Eventos, req, ID, ['Planificado', 'Abierto', 'Cerrado'], 'Cancelado');
+      if (!evento) return; // ya rechazado dentro del helper
+
+      // Cascada de negocio: cancelar también libera las inscripciones activas
+      await UPDATE(Inscripciones)
+        .set({ estado: 'Cancelada' })
+        .where({ evento_ID: ID, estado: { '!=': 'Cancelada' } });
+
+      return evento;
+    });
+
+    /* Registro de asistente a un evento (Action) */
+
+    this.on('registrarAsistente', 'Eventos', async (req) => {
+      const { ID: eventoID } = req.params[0];
+      const { nombre, apellidos, email, telefono, empresa } = req.data;
+
+      let asistente = await SELECT.one.from(Asistentes).where({ email });
+      if (!asistente) {
+        asistente = await this.create(Asistentes).entries({ nombre, apellidos, email, telefono, empresa });
+      }
+
+      // Reutiliza el before CREATE Inscripciones existente (duplicados, aforo, código)
+      return this.create(Inscripciones).entries({ evento_ID: eventoID, asistente_ID: asistente.ID });
+    });
+
+    /* Confirmación de inscripción (Action) */
+
+    this.on('confirmar', 'Inscripciones', async (req) => {
+      const { ID } = req.params[0];
+      const inscripcion = await SELECT.one.from(Inscripciones).columns('ID', 'estado').where({ ID });
+      if (!inscripcion) return req.reject(404, `La inscripción ${ID} no existe`);
+
+      if (inscripcion.estado !== 'Pendiente') {
+        return req.reject(409, `Solo se puede confirmar una inscripción en estado "Pendiente" (actual: "${inscripcion.estado}")`);
+      }
+
+      await UPDATE(Inscripciones).set({ estado: 'Confirmada' }).where({ ID });
+      return SELECT.one.from(Inscripciones).where({ ID });
     });
 
     return super.init();
