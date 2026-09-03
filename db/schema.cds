@@ -50,6 +50,7 @@ entity Evento : cuid, managed {
     aforoMaximo   : Integer      not null @assert.range: [1, 100000];
     estado        : EstadoEventoEnum default 'Planificado';    
     tipoEvento    : Association to one TipoEvento not null;
+    precio        : Decimal(9,2) default 0;
 
     // Composition: una Sesión no existe fuera de su Evento
     sesiones      : Composition of many Sesion
