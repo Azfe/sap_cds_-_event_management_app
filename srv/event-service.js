@@ -8,7 +8,7 @@ module.exports = class EventManagementService extends cds.ApplicationService {
     /* Validación de inscripciones */
 
     this.before('CREATE', 'Inscripciones', async (req) => {
-      const eventoID    = req.data.evento_ID;
+      const eventoID = req.data.evento_ID;
       const asistenteID = req.data.asistente_ID;
       if (!eventoID || !asistenteID) return;
 
@@ -34,7 +34,7 @@ module.exports = class EventManagementService extends cds.ApplicationService {
     /* Validación de coherencia de fechas de evento */
 
     this.before(['CREATE', 'UPDATE'], 'Eventos', async (req) => {
-      let {fechaInicio, fechaFin} = req.data;
+      let { fechaInicio, fechaFin } = req.data;
 
       if (req.event === 'UPDATE' && (fechaInicio === undefined || fechaFin === undefined)) {
         const eventoID = req.data.ID ?? req.params[0]?.ID;
@@ -42,11 +42,40 @@ module.exports = class EventManagementService extends cds.ApplicationService {
           .columns('fechaInicio', 'fechaFin')
           .where({ ID: eventoID });
         fechaInicio = fechaInicio ?? actual?.fechaInicio;
-        fechaFin    = fechaFin    ?? actual?.fechaFin;
+        fechaFin = fechaFin ?? actual?.fechaFin;
       }
 
       if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
         return req.reject(400, `La fecha de inicio (${fechaInicio}) no puede ser posterior a la fecha de fin (${fechaFin})`);
+      }
+    });
+
+    /* Validación de solapamiento de sesiones */
+
+    this.before(['CREATE', 'UPDATE'], 'Sesiones', async (req) => {
+      const eventoID = req.data.evento_ID;
+      const salaID = req.data.sala_ID;
+      const inicio = req.data.fechaHoraInicio;
+      const fin = req.data.fechaHoraFin;
+
+      if (!eventoID || !salaID || !inicio || !fin) return;
+
+      if (inicio >= fin) {
+        return req.reject(400, 'La hora de inicio de la sesión debe ser anterior a la hora de fin');
+      }
+
+      const solapadas = await SELECT.from(Sesiones)
+        .columns('ID')
+        .where({
+          evento_ID: eventoID,
+          sala_ID: salaID,
+          fechaHoraInicio: { '<': fin },
+          fechaHoraFin: { '>': inicio },
+          ...(req.event === 'UPDATE' ? { ID: { '!=': req.data.ID ?? req.params[0]?.ID } } : {})
+      });
+
+      if (solapadas.length > 0) {
+        return req.reject(409, 'Ya existe otra sesión de este evento en esa sala con un horario solapado');
       }
     });
 
