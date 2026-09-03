@@ -35,7 +35,7 @@ module.exports = class EventManagementService extends cds.ApplicationService {
 
     this.before(['CREATE', 'UPDATE'], 'Eventos', async (req) => {
 
-      // Valor por defecto dinámico
+      // Valor por defecto dinámico, si no se proporciona fechaFin, se iguala a fechaInicio
       if (req.event === 'CREATE' && !req.data.fechaFin && req.data.fechaInicio) {
         req.data.fechaFin = req.data.fechaInicio;
       }
